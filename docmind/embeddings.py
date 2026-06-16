@@ -10,7 +10,7 @@ one-time model download from the Hugging Face hub on first use.
 from __future__ import annotations
 
 import threading
-from typing import List, Optional
+from typing import List
 
 from .config import config
 from .logging_config import get_logger

@@ -94,12 +94,64 @@ def _parse_pdf_pymupdf(f: AcceptedFile) -> ParsedDocument:
     import fitz  # PyMuPDF
 
     sections: List[Section] = []
+    ocr_pages = 0
+
     with fitz.open(stream=f.data, filetype="pdf") as pdf:
         for i, page in enumerate(pdf, start=1):
             text = page.get_text("text").strip()
+            if not text:
+                # No embedded text — page is scanned/handwritten; fall back to OCR.
+                text = _ocr_pdf_page(page, f.name, i)
+                if text:
+                    ocr_pages += 1
             if text:
                 sections.append(Section(text=text, heading=f"Page {i}"))
+
+    if ocr_pages:
+        logger.info("'%s': OCR applied to %d page(s).", f.name, ocr_pages)
+
     return ParsedDocument(filename=f.name, sections=sections)
+
+
+def _ocr_pdf_page(page, filename: str, page_num: int) -> str:
+    """Render a PDF page at 300 DPI and run Tesseract OCR with preprocessing."""
+    try:
+        import fitz
+        import pytesseract
+        from PIL import Image
+
+        if config.tesseract_cmd:
+            pytesseract.pytesseract.tesseract_cmd = config.tesseract_cmd
+
+        pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        img = _preprocess_for_ocr(img)
+        return pytesseract.image_to_string(img, config="--oem 3 --psm 6").strip()
+    except ImportError:
+        logger.warning(
+            "pytesseract not available; cannot OCR page %d of '%s'.", page_num, filename
+        )
+        return ""
+    except Exception as e:
+        logger.warning("OCR failed for page %d of '%s': %s", page_num, filename, e)
+        return ""
+
+
+def _preprocess_for_ocr(img):
+    """Grayscale + contrast boost + binarize for Tesseract accuracy."""
+    from PIL import ImageEnhance, ImageFilter
+
+    img = img.convert("L")
+    img = ImageEnhance.Contrast(img).enhance(2.0)
+    img = img.filter(ImageFilter.SHARPEN)
+    img = img.point(lambda x: 0 if x < 150 else 255)
+    return img
+
+
+def _img_to_jpeg_bytes(img) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=88)
+    return buf.getvalue()
 
 
 def _parse_pdf_docling(f: AcceptedFile) -> ParsedDocument:
@@ -232,8 +284,9 @@ def _parse_image(f: AcceptedFile) -> ParsedDocument:
     if config.tesseract_cmd:
         pytesseract.pytesseract.tesseract_cmd = config.tesseract_cmd
 
-    image = Image.open(io.BytesIO(f.data))
-    text = pytesseract.image_to_string(image).strip()
+    img = Image.open(io.BytesIO(f.data))
+    img = _preprocess_for_ocr(img)
+    text = pytesseract.image_to_string(img, config="--oem 3 --psm 6").strip()
     if not text:
         raise ParsingError(f"OCR found no text in image '{f.name}'.")
     return ParsedDocument(filename=f.name, sections=[Section(text=text)])

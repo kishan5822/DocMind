@@ -1,30 +1,32 @@
-# Secrets
+# Secrets — never commit
 .env
 
-# Virtual env
+# Virtual environment
 .venv/
 venv/
 
-# Runtime data (ephemeral)
+# Runtime data (ephemeral — auto-recreated on first run)
 .docmind_data/
+
+# Logs
 *.log
+*.err
 pip-install.log
 
-# Python
+# Python bytecode
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
 
-# Model caches
+# Tool caches
+.impeccable/
 .cache/
 *.onnx
 
-# OS / IDE
+# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
-streamlit.err
