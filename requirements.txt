@@ -1,0 +1,42 @@
+# DocMind — pinned dependencies (Python 3.12)
+# Base install. Docling (heavy, opt-in) lives in requirements-docling.txt.
+
+# --- Web / UI ---
+streamlit==1.40.2
+
+# --- Config / secrets ---
+python-dotenv==1.0.1
+
+# --- File type validation ---
+filetype==1.2.0
+
+# --- Parsing ---
+PyMuPDF==1.24.14            # fast default PDF text/layout
+python-docx==1.1.2          # DOCX fallback
+python-pptx==1.0.2          # PPTX
+pandas==2.2.3               # XLSX / CSV / JSON
+openpyxl==3.1.5             # XLSX engine for pandas
+beautifulsoup4==4.12.3      # HTML / MD
+lxml==5.3.0                 # bs4 parser backend
+markdown==3.7               # MD -> HTML before bs4 strip
+pytesseract==0.3.13         # OCR (needs Tesseract binary installed)
+Pillow==11.0.0              # image loading for OCR
+
+# --- Embedding (local, no API key) ---
+sentence-transformers==3.3.1
+torch==2.5.1                # CPU build is default on Windows PyPI
+tiktoken==0.8.0             # accurate token counting for chunking
+
+# --- Vector DB ---
+# 1.x ships prebuilt Rust-binding wheels on Windows/py3.12 (no chroma-hnswlib
+# source build, no MSVC compiler needed). API used here is version-stable.
+chromadb==1.5.9
+
+# --- Keyword search ---
+rank-bm25==0.2.2
+
+# --- Reranking (local, no API key) ---
+flashrank==0.2.9
+
+# --- LLM (ONLY place the API key is used) ---
+groq==0.13.1

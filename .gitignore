@@ -1,0 +1,30 @@
+# Secrets
+.env
+
+# Virtual env
+.venv/
+venv/
+
+# Runtime data (ephemeral)
+.docmind_data/
+*.log
+pip-install.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Model caches
+.cache/
+*.onnx
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+streamlit.err

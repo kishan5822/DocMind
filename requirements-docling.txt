@@ -1,0 +1,4 @@
+# Optional heavy dependency — Docling for complex/scanned PDF parsing.
+# Install only if ENABLE_DOCLING=true. Pulls CPU PyTorch + models (~2GB, slow first run).
+#   pip install -r requirements-docling.txt
+docling==2.14.0

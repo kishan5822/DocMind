@@ -1,0 +1,10 @@
+[server]
+# Use poll-based file watching instead of watchdog.
+# Watchdog tries to inspect torch.classes C++ internals, which raises a
+# harmless but noisy "Tried to instantiate class '__path__._path'" warning.
+# Polling avoids that path entirely.
+fileWatcherType = "poll"
+
+[browser]
+# Suppress "check for updates" network call on startup.
+gatherUsageStats = false
