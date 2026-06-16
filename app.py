@@ -9,7 +9,7 @@ import streamlit as st
 
 from docmind.config import config
 from docmind.formatting import format_answer
-from docmind.llm import available_models
+from docmind.llm import fetch_models_from_api
 from docmind.logging_config import get_logger
 from docmind.session import session_manager
 from docmind.validation import FileInput, ValidationError
@@ -33,6 +33,12 @@ def _warmup_models() -> None:
 
 
 _warmup_models()
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _get_models():
+    """Fetch live Groq model list; cached for 5 minutes, falls back on error."""
+    return fetch_models_from_api()
 
 
 # --- session bootstrap ---
@@ -69,10 +75,11 @@ with st.sidebar:
     st.title("📄 DocMind")
     st.caption("Ask questions grounded in your own documents.")
 
-    models = available_models()
+    models = _get_models()
+    current = st.session_state.model
     st.session_state.model = st.selectbox(
-        "Model", models, index=models.index(st.session_state.model)
-        if st.session_state.model in models else 0,
+        "Model", models,
+        index=models.index(current) if current in models else 0,
     )
 
     st.divider()

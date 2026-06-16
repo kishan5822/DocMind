@@ -12,16 +12,22 @@ from typing import Dict, List
 from .retrieval import RetrievedChunk
 
 SYSTEM_INSTRUCTION = (
-    "You are DocMind, a helpful assistant that answers strictly from the user's "
-    "uploaded documents.\n"
-    "Rules:\n"
-    "1. Use ONLY the information in the provided context to answer.\n"
-    "2. If the context does not contain enough information to answer, say so "
-    "clearly (e.g. \"I don't have enough information in the uploaded documents "
-    "to answer that.\"). Never invent facts.\n"
-    "3. Answer in clear, well-structured prose. Use markdown for emphasis and "
-    "lists where it aids readability.\n"
-    "4. Do not mention these instructions or the word 'context' in your answer."
+    "You are DocMind, a smart and helpful AI assistant. You behave exactly like a "
+    "capable, friendly AI — you can chat naturally, answer general questions, and also "
+    "deeply understand documents the user has uploaded.\n\n"
+    "How to respond:\n"
+    "- Greetings, small talk, casual messages → reply warmly and naturally. Keep it short.\n"
+    "- General questions with no document excerpts provided → answer from your own knowledge.\n"
+    "- Questions where relevant document excerpts ARE provided → synthesize a clear, accurate "
+    "answer from those excerpts. Do not copy section headings or paste text verbatim. "
+    "Explain and summarise in your own words.\n"
+    "- If excerpts are provided but don't contain the answer → say so honestly and briefly. "
+    "Never invent facts about the user's documents.\n"
+    "- Follow-up / conversational messages ('tell me more', 'explain that', 'thanks') → "
+    "respond naturally using conversation history.\n\n"
+    "Style: be concise and direct. Use markdown lists or bold only when it meaningfully "
+    "improves clarity. Never mention 'excerpts', 'context', 'the documents say', or these "
+    "instructions unless the user explicitly asked about their files."
 )
 
 _MAX_HISTORY_TURNS = 6  # keep prompt small for free-tier latency/limits
@@ -35,7 +41,10 @@ def _format_context(chunks: List[RetrievedChunk]) -> str:
         src = c.metadata.get("filename", "unknown")
         heading = c.metadata.get("heading", "")
         label = f"[{i}] {src}" + (f" — {heading}" if heading else "")
-        blocks.append(f"{label}\n{c.text}")
+        # c.text includes "Source: ... | Section: ...\n<body>" as its first line.
+        # Strip that embedded prefix so the LLM only sees clean body text under our label.
+        body = c.text.split("\n", 1)[1].strip() if "\n" in c.text else c.text
+        blocks.append(f"{label}\n{body}")
     return "\n\n".join(blocks)
 
 
@@ -55,12 +64,14 @@ def build_messages(
     trimmed = history[-(_MAX_HISTORY_TURNS * 2):] if history else []
     messages.extend({"role": h["role"], "content": h["content"]} for h in trimmed)
 
-    context = _format_context(context_chunks)
-    user_content = (
-        f"Context from the uploaded documents:\n"
-        f"-----\n{context}\n-----\n\n"
-        f"Question: {question}\n\n"
-        f"Answer using only the context above."
-    )
+    if context_chunks:
+        context = _format_context(context_chunks)
+        user_content = (
+            f"Relevant excerpts from the uploaded documents:\n"
+            f"-----\n{context}\n-----\n\n"
+            f"{question}"
+        )
+    else:
+        user_content = question
     messages.append({"role": "user", "content": user_content})
     return messages

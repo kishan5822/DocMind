@@ -23,6 +23,10 @@ logger = get_logger(__name__)
 
 _RRF_K = 60  # standard RRF constant
 
+# Cross-encoder scores below this indicate the chunk is irrelevant to the query.
+# ms-marco-MiniLM-L-12-v2 scores relevant passages ~0 to +10, irrelevant ones go -5 to -15.
+_MIN_RERANK_SCORE = -3.0
+
 _ranker = None
 _ranker_lock = threading.Lock()
 
@@ -88,13 +92,16 @@ def _rerank(query: str, candidates: List[Dict], top_k: int) -> List[RetrievedChu
         by_id = {c["id"]: c for c in candidates}
         out: List[RetrievedChunk] = []
         for r in results[:top_k]:
+            score = float(r["score"])
+            if score < _MIN_RERANK_SCORE:
+                break  # results are sorted desc; once below threshold all remaining are too
             src = by_id[r["id"]]
             out.append(
                 RetrievedChunk(
                     id=r["id"],
                     text=src["text"],
                     metadata=src.get("metadata", {}),
-                    score=float(r["score"]),
+                    score=score,
                 )
             )
         return out

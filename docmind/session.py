@@ -136,6 +136,9 @@ class Session:
             yield "Please enter a question."
             return
 
+        # Retrieval runs for every query. The reranker's score threshold (_MIN_RERANK_SCORE)
+        # automatically filters out chunks that are irrelevant to the question, so greetings
+        # and general questions get empty context and the LLM responds naturally.
         context = retrieve(question, self.store, self.keyword_index)
         messages = build_messages(question, context, self.history)
 

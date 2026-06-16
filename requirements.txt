@@ -40,3 +40,4 @@ flashrank==0.2.9
 
 # --- LLM (ONLY place the API key is used) ---
 groq==0.13.1
+requests==2.34.2            # live Groq model list fetch

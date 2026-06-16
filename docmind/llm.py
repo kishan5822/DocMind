@@ -13,12 +13,59 @@ from .logging_config import get_logger
 
 logger = get_logger(__name__)
 
+# Substrings that identify non-chat models (speech, vision-encoder, guard, embed).
+_NON_CHAT_PATTERNS = ("whisper", "tts", "guard", "shield", "embed", "vision")
+
+
+def fetch_models_from_api() -> List[str]:
+    """Fetch the live list of active chat models from the Groq models endpoint.
+
+    Returns model IDs sorted alphabetically, with the configured default first.
+    Falls back to the hardcoded GROQ_MODELS list on any error (no key, network, etc.).
+    """
+    import requests
+
+    key = config.groq_api_key
+    if not key:
+        return _fallback_models()
+
+    try:
+        resp = requests.get(
+            "https://api.groq.com/openai/v1/models",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        ids = [
+            m["id"] for m in data
+            if m.get("active", True)
+            and not any(p in m["id"].lower() for p in _NON_CHAT_PATTERNS)
+        ]
+        ids.sort()
+        return _put_default_first(ids) if ids else _fallback_models()
+    except Exception as e:
+        logger.warning("Could not fetch Groq model list: %s. Using fallback.", e)
+        return _fallback_models()
+
+
+def _fallback_models() -> List[str]:
+    return _put_default_first(list(GROQ_MODELS))
+
+
+def _put_default_first(ids: List[str]) -> List[str]:
+    default = config.default_model
+    if default in ids:
+        ids.remove(default)
+        return [default] + ids
+    return ids
+
 
 def available_models() -> List[str]:
-    """Models offered in the selector; default first."""
-    default = config.default_model
-    ordered = [default] + [m for m in GROQ_MODELS if m != default]
-    return ordered
+    """Models offered in the UI selector. Uses hardcoded fallback list.
+    Call fetch_models_from_api() (cached in the UI layer) for the live list.
+    """
+    return _fallback_models()
 
 
 def _client():
@@ -34,8 +81,7 @@ def stream_answer(messages: List[Dict[str, str]], model: str) -> Iterator[str]:
     Yields text deltas. Any API error is logged server-side and surfaced as a
     short, friendly message yielded to the UI.
     """
-    if model not in available_models():
-        logger.warning("Unknown model '%s'; using default.", model)
+    if not model or not model.strip():
         model = config.default_model
 
     try:
