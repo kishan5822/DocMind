@@ -161,12 +161,9 @@ def chunk_document(doc: ParsedDocument) -> List[Chunk]:
 
 
 def chunk_documents(docs: List[ParsedDocument]) -> List[Chunk]:
-    """Chunk many documents, keeping globally unique ids."""
+    """Chunk many documents. IDs are '{filename}::{index}' — unique per session
+    because the app prevents re-ingesting the same filename."""
     all_chunks: List[Chunk] = []
     for doc in docs:
         all_chunks.extend(chunk_document(doc))
-    # Re-key ids to be globally unique across the batch.
-    for i, c in enumerate(all_chunks):
-        c.id = f"chunk-{i}"
-        c.metadata["chunk_index"] = str(i)
     return all_chunks
