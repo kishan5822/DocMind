@@ -1,8 +1,3 @@
-"""DocMind — Streamlit app (UI shell only; logic lives in the docmind package).
-
-Per-browser session isolation: each session gets a UUID stored in
-st.session_state, mapped to an isolated Session (own documents + memory).
-"""
 from __future__ import annotations
 
 import streamlit as st
