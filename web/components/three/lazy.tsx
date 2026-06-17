@@ -11,8 +11,8 @@ export const LazyShaderBackground = dynamic(
   { ssr: false }
 );
 
-export const LazyHeroScene = dynamic(
-  () => import("@/components/three/hero-scene"),
+export const LazyStrands = dynamic(
+  () => import("@/components/three/strands"),
   {
     ssr: false,
     loading: () => (

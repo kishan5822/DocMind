@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 
-import { LazyHeroScene, LazyShaderBackground } from "@/components/three/lazy";
+import { LazyStrands, LazyShaderBackground } from "@/components/three/lazy";
 
 export function Hero() {
   return (
@@ -58,9 +58,23 @@ export function Hero() {
           </div>
         </motion.div>
 
-        {/* 3D scene */}
+        {/* Strands animation */}
         <div className="relative h-[360px] w-full lg:h-[560px]">
-          <LazyHeroScene className="h-full w-full" />
+          <LazyStrands
+            colors={["#7C3AED", "#06B6D4", "#F97316"]}
+            count={4}
+            speed={0.4}
+            amplitude={1.2}
+            waviness={1}
+            thickness={0.8}
+            glow={2.8}
+            taper={2.5}
+            spread={1.1}
+            intensity={0.65}
+            saturation={1.6}
+            opacity={1}
+            scale={1.4}
+          />
         </div>
       </div>
     </section>
