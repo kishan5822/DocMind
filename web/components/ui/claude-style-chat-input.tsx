@@ -293,12 +293,28 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
   const [pastedContent, setPastedContent] = useState<PastedSnippet[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedModel, setSelectedModel] = useState(
-    defaultModel || models[0]?.id || ""
+    () => localStorage.getItem("docmind-model") || defaultModel || models[0]?.id || ""
   );
   const [isThinkingEnabled, setIsThinkingEnabled] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleModelSelect = (id: string) => {
+    setSelectedModel(id);
+    localStorage.setItem("docmind-model", id);
+  };
+
+  useEffect(() => {
+    if (models.length === 0) return;
+    const saved = localStorage.getItem("docmind-model");
+    if (saved && models.some((m) => m.id === saved)) {
+      setSelectedModel(saved);
+    } else if (models[0] && !models.some((m) => m.id === selectedModel)) {
+      setSelectedModel(models[0].id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [models]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -506,7 +522,7 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
                 <ModelSelector
                   models={models}
                   selectedModel={selectedModel}
-                  onSelect={setSelectedModel}
+                  onSelect={handleModelSelect}
                 />
               </div>
 
