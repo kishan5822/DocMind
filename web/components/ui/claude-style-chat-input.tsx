@@ -293,7 +293,11 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
   const [pastedContent, setPastedContent] = useState<PastedSnippet[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedModel, setSelectedModel] = useState(
-    () => localStorage.getItem("docmind-model") || defaultModel || models[0]?.id || ""
+    () =>
+      (typeof window !== "undefined" ? localStorage.getItem("docmind-model") : null) ||
+      defaultModel ||
+      models[0]?.id ||
+      ""
   );
   const [isThinkingEnabled, setIsThinkingEnabled] = useState(false);
 
