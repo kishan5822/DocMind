@@ -32,3 +32,12 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Claude Code local files
+.claude/
+.github/
+
+# Next.js auto-generated
+web/AGENTS.md
+web/CLAUDE.md
+web/README.md
