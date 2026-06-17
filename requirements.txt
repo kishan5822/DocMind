@@ -1,8 +1,13 @@
 # DocMind — pinned dependencies (Python 3.12)
 # Base install. Docling (heavy, opt-in) lives in requirements-docling.txt.
 
-# --- Web / UI ---
-streamlit==1.40.2
+# --- Web API (Next.js frontend backend) ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20    # multipart/form-data file uploads
+PyJWT==2.10.1               # auth tokens
+passlib[bcrypt]==1.7.4      # password hashing
+cryptography==44.0.0        # Fernet encryption for per-account Groq keys at rest
 
 # --- Config / secrets ---
 python-dotenv==1.0.1

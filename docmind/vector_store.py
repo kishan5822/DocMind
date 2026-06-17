@@ -133,6 +133,18 @@ class VectorStore:
             )
         return out
 
+    def delete_by_filename(self, filename: str) -> int:
+        """Delete all chunks/vectors for one file. Returns count removed."""
+        col = self._col()
+        res = col.get(where={"filename": filename})
+        ids = res.get("ids", [])
+        if ids:
+            col.delete(ids=ids)
+            logger.info(
+                "Deleted %d chunks for '%s' from '%s'.", len(ids), filename, self._name
+            )
+        return len(ids)
+
     def delete(self) -> None:
         """Drop this session's collection entirely."""
         try:

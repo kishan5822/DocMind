@@ -2,18 +2,22 @@
 
 **Ask questions. Get answers grounded strictly in your own documents.**
 
-DocMind is a local-first RAG (Retrieval-Augmented Generation) web app. Upload a mix of PDFs, Word docs, spreadsheets, images, and more — then chat with them. Every answer is sourced from your files. Nothing hallucinates. Nothing persists.
+DocMind is a local-first RAG (Retrieval-Augmented Generation) web app. Upload a mix of PDFs, Word docs, spreadsheets, images, and more — then chat with them. Every answer is sourced from your files. Nothing hallucinates.
 
 ---
 
 ## Features
 
 - **Multi-format ingestion** — PDF (text + scanned/OCR), DOCX, PPTX, XLSX, CSV, JSON, TXT, MD, HTML, PNG/JPG
+- **Auto-ingest on file select** — Files are ingested the moment you attach them; the Send button is locked until ingestion completes
+- **Per-file delete** — Remove a file's chunks and vectors at any time (from the composer or the sidebar), mid-ingest or after
 - **Hybrid retrieval** — Dense vector search + BM25 keyword search, fused with Reciprocal Rank Fusion, reranked by a local cross-encoder
 - **Grounded answers** — The LLM answers only from your documents. If the answer isn't there, it says so
-- **Per-session isolation** — Each browser tab gets its own encrypted vector collection. One user can never retrieve another's data
+- **Per-session isolation** — Each conversation gets its own encrypted vector collection. One user can never retrieve another's data
 - **Live model selector** — Dropdown fetches all active Groq models at startup; switch models mid-session
-- **Ephemeral by design** — Sessions expire after inactivity. No data persists permanently
+- **Retractable sidebar** — Collapses to an icon rail on desktop; slides in as a drawer on mobile
+- **Fully responsive** — Adapts from phone to wide-screen automatically; only the message window scrolls
+- **Ephemeral by design** — Sessions expire after inactivity. Vectors don't persist permanently
 - **100% local ML** — Embedding, retrieval, and reranking run entirely on CPU. The Groq API is used only for the final chat response
 
 ---
@@ -21,36 +25,37 @@ DocMind is a local-first RAG (Retrieval-Augmented Generation) web app. Upload a 
 ## Architecture
 
 ```
-Browser (Streamlit)
+Browser (Next.js — web/, port 3000)
+       │  REST + SSE
+       ▼
+  FastAPI (api/, port 8000)
        │
        ▼
-    app.py  ──────────────────────────────────────────────────────┐
-       │                                                          │
-       ▼                                                          │
-  session.py  (orchestration, isolation, TTL cleanup)             │
-       │                                                          │
-   ┌───┴────────────────────────────────────────┐                 │
-   │                                            │                 │
-   ▼ INGEST PIPELINE                            ▼ QUERY PIPELINE  │
-                                                                  │
-  validation.py  ← Stage 1: size, type, magic bytes              │
-  parsing.py     ← Stage 2: PyMuPDF / docx / pptx / OCR         │
-  chunking.py    ← Stage 3: 512-token recursive splitter         │
-  embeddings.py  ← Stage 4: BAAI/bge-base-en-v1.5 (local CPU)   │
-  vector_store.py ← Stage 5: ChromaDB, one collection/session    │
-                                                                  │
-                    retrieval.py ← Stage 6: dense + BM25 + RRF   │
-                                              + FlashRank rerank  │
-                    prompt.py    ← Stage 7: context builder       │
-                    llm.py       ← Stage 7: Groq API (key here)  ─┘
-                    formatting.py ← Stage 12: clean markdown out
+  docmind/  (core Python pipeline)
+       │
+   ┌───┴────────────────────────────────────────┐
+   │                                            │
+   ▼ INGEST PIPELINE                            ▼ QUERY PIPELINE
+
+  validation.py  ← Stage 1: size, type, magic bytes
+  parsing.py     ← Stage 2: PyMuPDF / docx / pptx / OCR
+  chunking.py    ← Stage 3: 512-token recursive splitter
+  embeddings.py  ← Stage 4: BAAI/bge-base-en-v1.5 (local CPU)
+  vector_store.py ← Stage 5: ChromaDB, one collection/session
+
+                    retrieval.py ← Stage 6: dense + BM25 + RRF
+                                              + FlashRank rerank
+                    prompt.py    ← Stage 7: context builder
+                    llm.py       ← Stage 7: Groq API (key here)
 ```
 
 ### Technology choices
 
 | Component | Library | Why |
 |-----------|---------|-----|
-| UI | Streamlit 1.40 | Fast to build, session_state gives per-tab isolation |
+| Frontend | Next.js 16 + React 19 (`web/`) | Full-featured, SSE streaming support, Tailwind v4 |
+| Backend | FastAPI + Uvicorn (`api/`) | Async, auto-validated routes, SSE via StreamingResponse |
+| Auth | PyJWT + passlib[bcrypt] | Stateless JWT tokens; bcrypt password hashing |
 | PDF | PyMuPDF 1.24 | Fast text extraction; falls back to Tesseract OCR for scanned pages |
 | Embedding | BAAI/bge-base-en-v1.5 (sentence-transformers) | Strong retrieval quality, 768-dim, CPU-friendly |
 | Vector DB | ChromaDB 1.5.x | Prebuilt Rust wheels on Windows/Python 3.12 — no compiler needed |
@@ -76,7 +81,7 @@ Reciprocal Rank Fusion   →  top-50 unique candidates
 FlashRank cross-encoder  →  top-5 reranked chunks
   │                         (filtered: score < -3.0 discarded as irrelevant)
   ▼
-Groq LLM                 →  streamed answer
+Groq LLM                 →  streamed answer (SSE)
 ```
 
 Chunks that score below the reranker threshold are discarded — so greetings and off-topic questions automatically get no document context and the LLM responds naturally.
@@ -86,6 +91,7 @@ Chunks that score below the reranker threshold are discarded — so greetings an
 ## Requirements
 
 - **Python 3.12** — The ML stack (torch, sentence-transformers, chromadb) does not support 3.13/3.14 yet
+- **Node.js 20+** — For the Next.js frontend
 - **Tesseract OCR** — Only needed for scanned PDFs and image uploads
   - Windows: `winget install UB-Mannheim.TesseractOCR`
   - macOS: `brew install tesseract`
@@ -109,19 +115,39 @@ python3.12 -m venv .venv        # macOS / Linux
 .venv\Scripts\activate          # Windows
 source .venv/bin/activate       # macOS / Linux
 
-# 4. Install dependencies
+# 4. Install Python dependencies
 pip install -r requirements.txt
 
-# 5. Configure
+# 5. Configure backend
 copy .env.example .env          # Windows
 cp .env.example .env            # macOS / Linux
 # Edit .env — set GROQ_API_KEY=gsk_...
 
-# 6. Run
-streamlit run app.py
+# 6. Install frontend dependencies
+cd web
+npm install
+
+# 7. Configure frontend (optional — defaults to http://localhost:8000)
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+cd ..
 ```
 
-Open [http://localhost:8501](http://localhost:8501). The first run downloads the embedding model and reranker from Hugging Face (~500 MB, cached locally).
+### Running (two terminals)
+
+**Terminal 1 — FastAPI backend:**
+```bash
+.venv\Scripts\activate          # Windows
+source .venv/bin/activate       # macOS / Linux
+uvicorn api.main:app --reload --port 8000
+```
+
+**Terminal 2 — Next.js frontend:**
+```bash
+cd web
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). The first run downloads the embedding model and reranker from Hugging Face (~500 MB, cached locally).
 
 ---
 
@@ -169,37 +195,31 @@ See [.env.example](.env.example) for the full annotated list.
 
 ---
 
-## Testing
+## Deployment
 
-Tests mirror the build stages. Run from the project root with the venv active:
+### Backend (FastAPI)
+
+Deploy the Python API to any platform that serves ASGI apps — Railway, Render, Fly.io, or a VPS:
 
 ```bash
-# Stage 1: file validation
-python -m tests.test_validation
-
-# Stages 2–6, 10, 12: full pipeline (no API key needed)
-python -m tests.test_pipeline
-
-# Stage 8: static API key containment audit
-python -m tests.test_api_key_audit
-
-# Stages 7 & 9: LLM generation + conversation memory (requires GROQ_API_KEY)
-python -m tests.test_generation
-
-# End-to-end: mixed batch ingest → ask → follow-up → new chat
-python -m tests.test_e2e
+uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
----
+Set all required environment variables (`GROQ_API_KEY`, `JWT_SECRET`, etc.) in the platform's secrets manager.
 
-## Deploy to Hugging Face Spaces
+### Frontend (Next.js)
 
-1. Create a new **Streamlit** Space (free tier)
-2. Push this repo — do **not** include `.env`
-3. In **Settings → Variables and secrets**, add `GROQ_API_KEY`
-4. The Space auto-installs `requirements.txt` and launches `app.py`
+Deploy `web/` to Vercel or any static/Node host:
 
-> Keep `ENABLE_DOCLING=false` on free-tier Spaces — Docling's models exceed the RAM budget.
+```bash
+cd web
+npm run build
+npm start
+```
+
+Set `NEXT_PUBLIC_API_URL` to your deployed backend URL.
+
+> Keep `ENABLE_DOCLING=false` unless you have ample RAM — Docling's models are heavy.
 
 ---
 
@@ -207,10 +227,12 @@ python -m tests.test_e2e
 
 | Property | Implementation |
 |----------|---------------|
-| API key confinement | Read in `config.py`, used only in `llm.py`, redacted from logs in `logging_config.py` — verified by a static audit test |
-| Data isolation | Each session gets its own ChromaDB collection; queries are scoped server-side, not in the UI |
+| API key confinement | Read in `config.py`, used only in `llm.py`, redacted from logs |
+| Auth | JWT bearer tokens; passwords hashed with bcrypt |
+| Groq key at rest | Per-user key encrypted with Fernet before DB storage |
+| Data isolation | Each session gets its own ChromaDB collection; queries are scoped server-side |
 | Upload validation | Files are validated by magic bytes (content), not extension alone |
-| Ephemeral storage | Sessions expire and are fully cleaned up (collection, BM25 index, uploads, history) |
+| Ephemeral vectors | Sessions expire and are fully cleaned up (collection, BM25 index, uploads) |
 | No key in frontend | The Groq key is never sent to the browser or reflected in any API response |
 
 ---
@@ -219,13 +241,27 @@ python -m tests.test_e2e
 
 ```
 DocMind/
-├── app.py                  # Streamlit entry point (UI only)
-├── requirements.txt        # Pinned dependencies (Python 3.12)
-├── requirements-docling.txt # Optional heavy deps for Docling
-├── .env.example            # Environment variable template
-├── .streamlit/
-│   └── config.toml         # Streamlit server config
-├── docmind/                # Core package
+├── api/                    # FastAPI application
+│   ├── main.py             # App factory, middleware, router registration
+│   ├── auth.py             # JWT auth, user model
+│   ├── conversations.py    # SQLite conversation/file store
+│   ├── deps.py             # FastAPI dependency injection
+│   └── routes/
+│       ├── auth.py         # POST /api/auth/signup, /login, /me
+│       ├── chat.py         # POST /api/chat (SSE streaming)
+│       ├── conversations.py # CRUD /api/conversations
+│       ├── ingest.py       # POST /api/ingest, DELETE /api/ingest/file
+│       ├── models.py       # GET /api/models
+│       └── settings.py     # GET/PUT/DELETE /api/settings/groq-key
+├── web/                    # Next.js 16 + React 19 frontend
+│   ├── app/                # Next.js App Router pages
+│   ├── components/
+│   │   ├── chat/           # chat-app.tsx — main chat layout
+│   │   └── ui/             # Reusable UI components
+│   ├── lib/
+│   │   └── api.ts          # Typed API client (all fetch calls)
+│   └── package.json
+├── docmind/                # Core Python pipeline (framework-agnostic)
 │   ├── config.py           # All settings from env
 │   ├── validation.py       # Stage 1 — file validation
 │   ├── parsing.py          # Stage 2 — multi-format parsing + OCR
@@ -236,15 +272,11 @@ DocMind/
 │   ├── retrieval.py        # Stage 6 — hybrid retrieval + rerank
 │   ├── prompt.py           # Prompt builder
 │   ├── llm.py              # Stage 7 — Groq API (only egress point)
-│   ├── formatting.py       # Stage 12 — markdown cleanup
 │   ├── session.py          # Session lifecycle + orchestration
 │   └── logging_config.py   # Structured logging + key redaction
-└── tests/
-    ├── test_validation.py  # Stage 1 tests
-    ├── test_pipeline.py    # Stages 2–6, 10, 12
-    ├── test_api_key_audit.py # Static key containment audit
-    ├── test_generation.py  # Stage 7 & 9 (needs API key)
-    └── test_e2e.py         # Full end-to-end flow
+├── requirements.txt        # Pinned Python dependencies (3.12)
+├── requirements-docling.txt # Optional heavy deps for Docling
+└── .env.example            # Environment variable template
 ```
 
 ---

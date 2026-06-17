@@ -128,8 +128,14 @@ class Session:
 
     # --- chat ---
 
-    def ask(self, question: str, model: str) -> Iterator[str]:
-        """Retrieve context, generate a grounded answer, stream it, update memory."""
+    def ask(
+        self, question: str, model: str, api_key: Optional[str] = None
+    ) -> Iterator[str]:
+        """Retrieve context, generate a grounded answer, stream it, update memory.
+
+        `api_key` selects a per-account Groq key; when None the configured env
+        key is used (preserving the Streamlit behavior).
+        """
         self.touch()
         question = question.strip()
         if not question:
@@ -143,7 +149,7 @@ class Session:
         messages = build_messages(question, context, self.history)
 
         answer_parts: List[str] = []
-        for delta in stream_answer(messages, model):
+        for delta in stream_answer(messages, model, api_key):
             answer_parts.append(delta)
             yield delta
 
@@ -151,6 +157,22 @@ class Session:
         answer = "".join(answer_parts)
         self.history.append({"role": "user", "content": question})
         self.history.append({"role": "assistant", "content": answer})
+
+    def delete_file(self, filename: str) -> int:
+        """Remove one file's vectors, rebuild BM25, and drop its persisted upload."""
+        self.touch()
+        with self._lock:
+            removed = self.store.delete_by_filename(filename)
+            self.keyword_index = KeywordIndex(self.store.all_documents())
+            if filename in self.ingested_files:
+                self.ingested_files.remove(filename)
+            f = self._upload_dir / filename
+            try:
+                if f.exists():
+                    f.unlink()
+            except OSError as e:
+                logger.warning("Could not delete upload '%s': %s", filename, e)
+        return removed
 
     def reset_memory(self) -> None:
         """Clear chat history (kept separate from document scope)."""
