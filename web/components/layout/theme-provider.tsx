@@ -14,16 +14,24 @@ const ThemeContext = React.createContext<ThemeContextValue | undefined>(
   undefined
 );
 
-/** Reads the theme the inline boot script already resolved onto <html>. */
-function getInitialTheme(): Theme {
-  if (typeof document === "undefined") return "light";
-  return document.documentElement.classList.contains("dark")
-    ? "dark"
-    : "light";
-}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = React.useState<Theme>(getInitialTheme);
+  const [theme, setThemeState] = React.useState<Theme>("light");
+
+  // Re-apply the theme from localStorage after hydration, before the browser
+  // paints. React's hydration removes the `dark` class the boot script added
+  // (server HTML never has it), so useLayoutEffect puts it back before paint.
+  React.useLayoutEffect(() => {
+    try {
+      const stored = localStorage.getItem("docmind-theme") as Theme | null;
+      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const resolved: Theme = stored ?? (systemDark ? "dark" : "light");
+      setThemeState(resolved);
+      document.documentElement.classList.toggle("dark", resolved === "dark");
+    } catch {
+      /* storage unavailable in private mode */
+    }
+  }, []);
 
   const applyTheme = React.useCallback((next: Theme) => {
     setThemeState(next);
