@@ -37,7 +37,7 @@ import {
   type ChatSubmission,
   type Model,
 } from "@/components/ui/claude-style-chat-input";
-import { Markdown } from "@/components/chat/markdown";
+import { Markdown, MessageCopyButton } from "@/components/chat/markdown";
 import { SettingsDialog } from "@/components/chat/settings-dialog";
 import { Logo } from "@/components/ui/logo";
 
@@ -660,12 +660,15 @@ export function ChatApp() {
                       </div>
                     ) : (
                       <div key={m.id} className="flex justify-start">
-                        <div className="max-w-[88%] rounded-2xl rounded-bl-md border border-border bg-bg-100 px-4 py-3">
-                          {m.content ? (
-                            <Markdown>{m.content}</Markdown>
-                          ) : (
-                            <Loader2 className="h-4 w-4 animate-spin text-text-400" />
-                          )}
+                        <div className="max-w-[88%]">
+                          <div className="rounded-2xl rounded-bl-md border border-border bg-bg-100 px-4 py-3">
+                            {m.content ? (
+                              <Markdown>{m.content}</Markdown>
+                            ) : (
+                              <Loader2 className="h-4 w-4 animate-spin text-text-400" />
+                            )}
+                          </div>
+                          {m.content && <MessageCopyButton text={m.content} />}
                         </div>
                       </div>
                     )
