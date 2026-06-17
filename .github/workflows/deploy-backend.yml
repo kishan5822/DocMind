@@ -1,0 +1,28 @@
+name: Deploy Backend to HuggingFace Space
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'docmind/**'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Actions"
+          git remote add hf https://kishu22:$HF_TOKEN@huggingface.co/spaces/kishu22/docmind-api
+          git push hf main:main --force
