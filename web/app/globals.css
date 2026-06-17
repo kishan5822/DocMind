@@ -258,12 +258,20 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.md code {
+/* Inline code only — excluded from syntax-highlighted blocks */
+.md code:not(.md .code-block code) {
   border-radius: 0.3rem;
   background-color: var(--bg-200);
   padding: 0.1rem 0.3rem;
   font-family: var(--font-mono);
   font-size: 0.88em;
+}
+/* Reset any leaking global code styles inside syntax blocks */
+.md .code-block code,
+.md .code-block span {
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: inherit !important;
 }
 .md pre {
   overflow-x: auto;
