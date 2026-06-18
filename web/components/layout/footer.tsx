@@ -18,6 +18,11 @@ const COLUMNS = [
     links: [
       { href: "/about", label: "About" },
       { href: "/docs", label: "Docs" },
+      {
+        href: "https://github.com/kishan5822/DocMind",
+        label: "GitHub",
+        external: true,
+      },
     ],
   },
   {
@@ -56,12 +61,23 @@ export function Footer() {
             <ul className="space-y-2">
               {col.links.map((link) => (
                 <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-text-300 transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
+                  {"external" in link && link.external ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-text-300 transition-colors hover:text-foreground"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="text-sm text-text-300 transition-colors hover:text-foreground"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

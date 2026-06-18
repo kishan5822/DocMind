@@ -28,7 +28,7 @@ export default function AboutPage() {
       <section className="px-6 pb-8">
         <Reveal className="mx-auto max-w-3xl space-y-6 text-lg leading-relaxed text-text-200">
           <p>
-            Most AI tools ask you to paste your private documents into someone
+            Most AI tools ask you to paste private documents into someone
             else&apos;s cloud. DocMind takes the opposite stance: your files are
             parsed, chunked, and embedded locally, then stored in an isolated
             per-session vector store that&apos;s cleaned up automatically.
@@ -37,11 +37,22 @@ export default function AboutPage() {
             When you ask a question, DocMind runs both semantic and keyword
             search, fuses the results, and reranks them with a local
             cross-encoder. Only the most relevant passages — never your whole
-            corpus — are sent to the language model to compose a cited answer.
+            corpus — reach the language model that composes a cited answer.
           </p>
           <p>
-            The result is a system that feels conversational but stays
-            accountable: every claim traces back to a passage you can read.
+            The result feels conversational but stays accountable: every claim
+            traces back to a passage you can read.
+          </p>
+          <p className="text-base text-text-300">
+            DocMind is open source.{" "}
+            <a
+              href="https://github.com/kishan5822/DocMind"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-accent hover:underline"
+            >
+              Read the code on GitHub →
+            </a>
           </p>
         </Reveal>
       </section>

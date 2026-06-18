@@ -4,62 +4,58 @@ import Link from "next/link";
 import { PageHeader } from "@/components/sections/page-header";
 import { Reveal } from "@/components/ui/reveal";
 
+const REPO_URL = "https://github.com/kishan5822/DocMind";
+
 export const metadata: Metadata = {
   title: "Docs",
   description:
-    "Get started with DocMind: install, configure your Groq key, ingest documents, and ask grounded questions.",
+    "How to use DocMind: create an account, upload your documents, ask questions, and get cited answers — right in your browser.",
 };
 
 const SECTIONS = [
   {
-    id: "quickstart",
-    title: "Quickstart",
+    id: "getting-started",
+    title: "Getting started",
     body: (
       <>
-        <p>Clone the repo and install dependencies into a Python 3.12 venv:</p>
-        <pre>
-          <code>{`python -m venv .venv
-.venv\\Scripts\\activate
-pip install -r requirements.txt`}</code>
-        </pre>
         <p>
-          Then open the app and start uploading documents from the sidebar.
+          DocMind runs entirely in your browser — there&apos;s nothing to install
+          and nothing to configure.{" "}
+          <Link href="/signup" className="font-medium text-accent hover:underline">
+            Create an account
+          </Link>{" "}
+          (or{" "}
+          <Link href="/login" className="font-medium text-accent hover:underline">
+            sign in
+          </Link>
+          ), then open the app to start a conversation.
+        </p>
+        <p>
+          <Link href="/chat" className="font-medium text-accent hover:underline">
+            Open the app
+          </Link>{" "}
+          and you&apos;ll land in a fresh chat, ready for your first document.
         </p>
       </>
     ),
   },
   {
-    id: "configuration",
-    title: "Configuration",
+    id: "documents",
+    title: "Adding your documents",
     body: (
       <>
         <p>
-          DocMind reads its settings from environment variables. The only
-          required value is your Groq API key:
-        </p>
-        <pre>
-          <code>{`GROQ_API_KEY=your_key_here`}</code>
-        </pre>
-        <p>
-          Tuning knobs (chunk size, retrieval counts, file limits) all have safe
-          defaults — see <code>.env.example</code>.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: "ingesting",
-    title: "Ingesting documents",
-    body: (
-      <>
-        <p>
-          Upload up to your configured batch limit at once. DocMind validates
-          each file, parses by format, chunks it, embeds the chunks locally, and
-          indexes them for both vector and keyword search.
+          Attach files straight from the chat composer (or the sidebar).
+          They&apos;re ingested automatically the moment you add them — the send
+          button stays locked until your files are ready.
         </p>
         <p>
-          Supported formats include PDF, DOCX, PPTX, XLSX, CSV, JSON, TXT, MD,
-          HTML, and common image types.
+          Supported formats: PDF (including scanned PDFs), DOCX, PPTX, XLSX, CSV,
+          JSON, TXT, MD, HTML, and common image types (PNG/JPG).
+        </p>
+        <p>
+          Need to remove something? Delete any file at any time — its content is
+          dropped from the conversation right away.
         </p>
       </>
     ),
@@ -70,12 +66,49 @@ pip install -r requirements.txt`}</code>
     body: (
       <>
         <p>
-          Type a question in the composer. DocMind retrieves the most relevant
-          passages, sends them with your conversation history to the model, and
-          streams a grounded answer back with citations.
+          Type a question in the composer. DocMind finds the most relevant
+          passages in your files, sends them to the model, and streams back an
+          answer grounded in your documents — with citations you can trace.
         </p>
         <p>
-          Starting a new chat clears the session&apos;s documents and memory.
+          Starting a new chat clears that session&apos;s documents and memory, so
+          each conversation stays focused on its own files.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "models",
+    title: "Choosing a model",
+    body: (
+      <>
+        <p>
+          Use the model dropdown in the composer to pick which model answers you.
+          You can switch models at any point in a conversation — the next reply
+          uses your new choice.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "self-hosting",
+    title: "Self-hosting & development",
+    body: (
+      <>
+        <p>
+          DocMind is open source. If you want to run it yourself, configure it, or
+          read how the retrieval pipeline works under the hood, everything lives
+          on GitHub.
+        </p>
+        <p>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-accent hover:underline"
+          >
+            View the source on GitHub →
+          </a>
         </p>
       </>
     ),
@@ -87,8 +120,8 @@ export default function DocsPage() {
     <>
       <PageHeader
         eyebrow="Documentation"
-        title="Get started in minutes"
-        subtitle="Install, point DocMind at your Groq key, and start asking your documents questions."
+        title="Using DocMind"
+        subtitle="Upload your documents and ask questions — get cited answers right in your browser. No install, no setup."
       />
 
       <div className="mx-auto grid max-w-6xl gap-12 px-6 pb-28 lg:grid-cols-[220px_1fr]">
